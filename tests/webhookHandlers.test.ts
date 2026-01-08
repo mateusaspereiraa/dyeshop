@@ -33,6 +33,9 @@ describe('handleCheckoutSessionCompleted', () => {
     jest.spyOn(notifiers, 'sendAdminSlack').mockResolvedValue(undefined as any)
     jest.spyOn(notifiers, 'sendAdminSms').mockResolvedValue(undefined as any)
 
+    // spy console.error to fail the test if unexpected errors are logged
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+
     const res = await handleCheckoutSessionCompleted(session)
 
     expect(mockedPrisma.order.findUnique).toHaveBeenCalledWith({ where: { stripeSessionId: 'sess_123' } })
@@ -42,6 +45,9 @@ describe('handleCheckoutSessionCompleted', () => {
     expect(email.sendAdminNotification).toHaveBeenCalled()
     expect(notifiers.sendAdminSlack).toHaveBeenCalled()
     expect(notifiers.sendAdminSms).toHaveBeenCalled()
+
+    expect(consoleSpy).not.toHaveBeenCalled()
+    consoleSpy.mockRestore()
   })
 
   it('does not create duplicate orders when session already processed', async () => {
