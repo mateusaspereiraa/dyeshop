@@ -3,8 +3,8 @@
 set -e
 
 echo "== Instalando dependências =="
-sudo apt update
-sudo apt install -y \
+ apt update
+ apt install -y \
   android-sdk \
   android-sdk-platform-tools \
   android-sdk-emulator \
