@@ -1,7 +1,8 @@
 import Head from 'next/head'
-import Layout from '@/components/Layout'
-import ProductCard from '@/components/ProductCard'
-import Sidebar from '@/components/Sidebar'
+import Layout from '../components/Layout'
+import ProductCard from '../components/ProductCard'
+import Sidebar from '../components/Sidebar'
+
 import Image from 'next/image'
 
 export default function Home() {
