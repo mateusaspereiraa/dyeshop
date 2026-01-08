@@ -1,27 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
-  experimental: {
-    appDir: false
-  },
+  output: 'export',
   images: {
-    // Allow loading images from any https host used in development/tests
-    // Prefer tightening this to specific hostnames for production security
-    remotePatterns: [
-      { protocol: 'https', hostname: '**' }
-    ]
+    unoptimized: true
   }
 }
 
 module.exports = nextConfig
-
-const withPWA = require('next-pwa')({
-  dest: 'public',
-  register: true,
-  skipWaiting: true
-})
-
-module.exports = withPWA({
-  output: 'export',
-  reactStrictMode: true
-})
