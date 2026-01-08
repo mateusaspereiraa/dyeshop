@@ -1,16 +1,15 @@
 module.exports = {
   content: [
-    "./pages/**/*.{ts,tsx}",
-    "./components/**/*.{ts,tsx}"
+    './pages/**/*.{ts,tsx}',
+    './components/**/*.{ts,tsx}'
   ],
   theme: {
     extend: {
       colors: {
-        'dye-black': '#0b0b0b',
-        'dye-yellow': '#ffc300',
-        'dye-gray': '#9e9e9e',
-        'dye-white': '#f5f5f5',
-        'dye-brown-gray': '#6b5e52'
+        'dye-black': '#000000',
+        'dye-gray': '#6b6b6b',
+        'dye-yellow': '#FFD400',
+        'dye-wood': '#8B5E3C'
       }
     }
   },
