@@ -1,61 +1,101 @@
-jest.mock('../src/lib/prisma')
-jest.mock('../src/lib/email', () => ({ sendOrderConfirmation: jest.fn(), sendAdminNotification: jest.fn() }))
-jest.mock('../src/lib/notifiers', () => ({ sendAdminSlack: jest.fn(), sendAdminSms: jest.fn() }))
-
 import { handleCheckoutSessionCompleted } from '../src/lib/webhookHandlers'
 import prisma from '../src/lib/prisma'
+import * as email from '../src/lib/email'
+import * as notifiers from '../src/lib/notifiers'
 
-const mockedPrisma: any = prisma as any
+jest.mock('../src/lib/prisma', () => ({
+  order: {
+    findUnique: jest.fn(),
+    create: jest.fn()
+  },
+  product: {
+    findFirst: jest.fn(),
+    findUnique: jest.fn()
+  }
+}))
 
-describe('handleCheckoutSessionCompleted fallback mapping and error cases', () => {
+jest.mock('../src/lib/email', () => ({
+  sendOrderConfirmation: jest.fn(),
+  sendAdminNotification: jest.fn()
+}))
+
+jest.mock('../src/lib/notifiers', () => ({
+  sendAdminSlack: jest.fn(),
+  sendAdminSms: jest.fn()
+}))
+
+const mockedPrisma = prisma as jest.Mocked<typeof prisma>
+
+describe('handleCheckoutSessionCompleted', () => {
   beforeEach(() => {
-    jest.resetAllMocks()
+    jest.clearAllMocks()
   })
 
-  it('attempts to map line items by product name when metadata missing', async () => {
+  it('maps line items by product name when metadata is missing', async () => {
     mockedPrisma.order.findUnique.mockResolvedValue(null)
-    mockedPrisma.product.findFirst.mockResolvedValue({ id: 'prod_name', price: 25 })
-    mockedPrisma.order.create.mockResolvedValue({ id: 'order_2', total: 25, items: [{ id: 'it1', product: { name: 'Fallback Product' }, quantity: 1, price: 25 }] })
+    mockedPrisma.product.findFirst.mockResolvedValue({ id: 'prod_name', price: 25 } as any)
+    mockedPrisma.order.create.mockResolvedValue({
+      id: 'order_2',
+      total: 25,
+      items: [{ quantity: 1, price: 25, product: { name: 'Fallback Product' } }]
+    } as any)
 
-    // stub stripe-like client with listLineItems
-    const stripeStub: any = {
-      checkout: { sessions: { listLineItems: jest.fn().mockResolvedValue({ data: [{ description: 'Fallback Product', quantity: 1 }] }) } }
+    const stripeStub = {
+      checkout: {
+        sessions: {
+          listLineItems: jest.fn().mockResolvedValue({
+            data: [{ description: 'Fallback Product', quantity: 1 }]
+          })
+        }
+      }
     }
 
-    const session: any = { id: 'sess_fallback', amount_total: 2500 }
+    const session = { id: 'sess_fallback', amount_total: 2500 }
 
-    const res = await handleCheckoutSessionCompleted(session, stripeStub)
+    const result = await handleCheckoutSessionCompleted(session as any, stripeStub as any)
 
-    expect(stripeStub.checkout.sessions.listLineItems).toHaveBeenCalledWith('sess_fallback', { limit: 100 })
+    expect(stripeStub.checkout.sessions.listLineItems).toHaveBeenCalledWith(
+      'sess_fallback',
+      { limit: 100 }
+    )
     expect(mockedPrisma.order.create).toHaveBeenCalled()
-    expect(res).toMatchObject({ id: 'order_2', created: true })
+    expect(result).toEqual({ id: 'order_2', created: true })
   })
 
-  it('continues gracefully if notification sending fails', async () => {
+  it('continues gracefully when notification sending fails', async () => {
     mockedPrisma.order.findUnique.mockResolvedValue(null)
-    mockedPrisma.product.findUnique.mockResolvedValue({ id: 'prod_1', price: 10 })
-    mockedPrisma.order.create.mockResolvedValue({ id: 'order_3', total: 10, items: [{ id: 'it1', product: { name: 'Test' }, quantity: 1, price: 10 }], customerEmail: 'customer@example.com' })
+    mockedPrisma.product.findUnique.mockResolvedValue({ id: 'prod_1', price: 10 } as any)
+    mockedPrisma.order.create.mockResolvedValue({
+      id: 'order_3',
+      total: 10,
+      items: [{ quantity: 1, price: 10, product: { name: 'Test' } }],
+      customerEmail: 'customer@example.com'
+    } as any)
 
-    const session: any = { id: 'sess_notify_err', metadata: { order: JSON.stringify([{ productId: 'prod_1', quantity: 1 }]) }, amount_total: 1000, customer_details: { email: 'customer@example.com' } }
+    ;(email.sendOrderConfirmation as jest.Mock).mockRejectedValue(new Error('email fail'))
+    ;(email.sendAdminNotification as jest.Mock).mockRejectedValue(new Error('email fail'))
+    ;(notifiers.sendAdminSlack as jest.Mock).mockRejectedValue(new Error('slack fail'))
+    ;(notifiers.sendAdminSms as jest.Mock).mockRejectedValue(new Error('sms fail'))
 
-    // mock email and notifier to throw
-    const email = await import('../src/lib/email')
-    const notifiers = await import('../src/lib/notifiers')
-    jest.spyOn(email, 'sendOrderConfirmation').mockRejectedValue(new Error('send fail'))
-    jest.spyOn(email, 'sendAdminNotification').mockRejectedValue(new Error('send fail'))
-    jest.spyOn(notifiers, 'sendAdminSlack').mockRejectedValue(new Error('slack fail'))
-    jest.spyOn(notifiers, 'sendAdminSms').mockRejectedValue(new Error('sms fail'))
-
-    // spy and suppress console.error to avoid noisy test output, but assert it was called
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
 
-    await expect(handleCheckoutSessionCompleted(session)).resolves.toMatchObject({ id: 'order_3', created: true })
+    const session = {
+      id: 'sess_notify_err',
+      amount_total: 1000,
+      metadata: {
+        order: JSON.stringify([{ productId: 'prod_1', quantity: 1 }])
+      },
+      customer_details: { email: 'customer@example.com' }
+    }
 
-    // ensure notifications were attempted
+    await expect(
+      handleCheckoutSessionCompleted(session as any)
+    ).resolves.toEqual({ id: 'order_3', created: true })
+
     expect(email.sendOrderConfirmation).toHaveBeenCalled()
     expect(notifiers.sendAdminSlack).toHaveBeenCalled()
-
     expect(consoleSpy).toHaveBeenCalled()
+
     consoleSpy.mockRestore()
   })
 })
