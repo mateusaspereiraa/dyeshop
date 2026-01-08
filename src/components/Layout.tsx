@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import { ReactNode, useState } from 'react'
 import Sidebar from './Sidebar'
 
@@ -10,13 +11,24 @@ export default function Layout({ children }: { children: ReactNode }) {
 
       <div className="flex-1 p-6">
         <header className="flex items-center justify-between mb-10">
-          <button onClick={() => setOpen(!open)} className="text-2xl">☰</button>
+          <button
+            onClick={() => setOpen(!open)}
+            className="text-2xl"
+            aria-label="Abrir menu"
+          >
+            ☰
+          </button>
 
-          <h1 className="text-3xl font-bold text-dye-yellow">
-            DY<span className="text-dye-gray">eshop</span>
-          </h1>
+          {/* LOGOTIPO */}
+          <Image
+            src="/logo.png"
+            alt="DYeshop"
+            width={140}
+            height={40}
+            priority
+          />
 
-          <span>🛒</span>
+          <span aria-label="Carrinho">🛒</span>
         </header>
 
         {children}
@@ -24,5 +36,3 @@ export default function Layout({ children }: { children: ReactNode }) {
     </div>
   )
 }
-
-
