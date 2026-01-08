@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --dye-black: #000000;
+  --dye-gray: #6b6b6b;
+  --dye-yellow: #FFD400;
+  --dye-wood: #8B5E3C;
+}
+
+html, body, #__next {
+  height: 100%;
+}
+
+body {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+  background-color: var(--dye-gray);
+  color: white;
+}
+
+a { color: inherit; }

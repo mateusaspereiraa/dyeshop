@@ -1,0 +1,35 @@
+import type { NextApiRequest, NextApiResponse } from 'next'
+import Stripe from 'stripe'
+import { buffer } from 'micro'
+import { handleCheckoutSessionCompleted } from '../../../lib/webhookHandlers'
+
+export const config = { api: { bodyParser: false } }
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', { apiVersion: '2022-11-15' })
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== 'POST') return res.status(405).end('Method Not Allowed')
+
+  const sig = req.headers['stripe-signature'] as string | undefined
+  const buf = await buffer(req)
+  let event: Stripe.Event
+
+  try {
+    event = stripe.webhooks.constructEvent(buf.toString(), sig || '', process.env.STRIPE_WEBHOOK_SECRET || '')
+  } catch (err) {
+    console.error(err)
+    return res.status(400).send(`Webhook Error: ${(err as Error).message}`)
+  }
+
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object as Stripe.Checkout.Session
+    try {
+      await handleCheckoutSessionCompleted(session, stripe)
+    } catch (err) {
+      console.error('Error handling checkout.session.completed', err)
+      return res.status(500).end('Internal Server Error')
+    }
+  }
+
+  res.status(200).json({ received: true })
+}
