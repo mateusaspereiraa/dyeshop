@@ -9,7 +9,7 @@ export default function ProductsPage({ products }: { products: any[] }) {
       <Head>
         <title>Produtos — DyeShop</title>
       </Head>
-      <main className="min-h-screen px-6 py-12 bg-dye-gray-50">
+      <main className="bg-dye-gray min-h-screen">
         <section className="max-w-6xl mx-auto">
           <h2 className="text-2xl font-bold mb-6">Produtos</h2>
           <ProductGrid products={products} />

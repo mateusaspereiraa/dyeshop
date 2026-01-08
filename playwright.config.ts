@@ -6,8 +6,8 @@ export default defineConfig({
   webServer: {
     command: 'npm run dev',
     url: 'http://localhost:3000',
-    // Always start a fresh dev server for tests so test env vars are applied
-    reuseExistingServer: false,
+    // Allow Playwright to use an already-running dev server (CI starts it separately)
+    reuseExistingServer: true,
     timeout: 120_000,
     // expose test-only env vars to the dev server when running tests locally
     env: {

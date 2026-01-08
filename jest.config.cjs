@@ -12,4 +12,10 @@ const customJestConfig = {
   collectCoverageFrom: ['src/**/*.{ts,tsx}', '!src/**/index.ts', '!src/**/prisma.ts', '!src/pages/**']
 }
 
-module.exports = createJestConfig(customJestConfig)
+module.exports = {
+  preset: 'ts-jest',
+  testEnvironment: 'node',
+  moduleFileExtensions: ['ts', 'tsx', 'js'],
+  testMatch: ['**/*.test.ts', '**/*.test.tsx']
+}
+
